@@ -57,10 +57,12 @@ Reglas transversales:
 
 ```
 el-viajede-kuxtal-backend/
-├── docker-compose.yml                # Servicio MySQL 8.0 containerizado
-├── CONTEXT.md                          # Este documento
-├── .env                                # Variables de entorno (NO se versiona)
-├── .env.example                        # Plantilla de variables de entorno
+├── Dockerfile                  # Build multi-stage NestJS (builder → production)
+├── .dockerignore               # Exclusiones del contexto Docker
+├── docker-compose.yml          # Orquestación: db (MySQL) + backend (NestJS)
+├── CONTEXT.md                  # Este documento
+├── .env                        # Variables de entorno (NO se versiona)
+├── .env.example                # Plantilla de variables de entorno
 ├── package.json
 ├── nest-cli.json
 ├── tsconfig.json
@@ -650,33 +652,31 @@ pnpm start:dev            # http://localhost:3000/api
 
 ## 8. Infraestructura de Base de Datos y Entorno Local
 
-### 8.1 Docker Compose — MySQL 8.0 containerizado
+### 8.1 Docker Compose — MySQL 8.0 + Backend NestJS containerizados
 
-El archivo `docker-compose.yml` en la raíz del proyecto define un servicio MySQL 8.0 aislado y persistente:
+El archivo `docker-compose.yml` en la raíz del proyecto define dos servicios:
 
-| Propiedad | Valor |
-|---|---|
-| Imagen | `mysql:8.0` |
-| Nombre del contenedor | `kuxtal_mysql` |
-| Puerto expuesto | `3306:3306` |
-| Base de datos | `kuxtal_db` |
-| Usuario | `kuxtal_user` |
-| Password | `kuxtal_password` |
-| Volumen persistente | `mysql_data:/var/lib/mysql` |
+| Servicio | Imagen | Contenedor | Puerto | Propósito |
+|---|---|---|---|---|
+| `db` | `mysql:8.0` | `kuxtal_mysql` | `3306:3306` | Base de datos MySQL con healthcheck |
+| `backend` | Build local (`Dockerfile`) | `kuxtal_backend` | `3000:3000` | API NestJS (espera a que `db` esté saludable) |
 
 **Comandos de uso:**
 
 ```bash
-# Levantar el contenedor (en segundo plano)
-docker compose up -d
+# Levantar todo el sistema (construcción + MySQL + backend)
+docker compose up --build -d
 
-# Ver el estado del contenedor
+# Ver el estado de los contenedores
 docker compose ps
 
-# Ver logs de MySQL
-docker compose logs -f mysql_db
+# Ver logs del backend
+docker compose logs -f backend
 
-# Detener el contenedor (los datos se mantienen en el volumen)
+# Ver logs de MySQL
+docker compose logs -f db
+
+# Detener los contenedores (los datos se mantienen en el volumen)
 docker compose down
 
 # Detener y ELIMINAR todos los datos (⚠ destructivo)
@@ -860,4 +860,100 @@ Crear una colección con las 4 peticiones en orden:
 
 ```bash
 curl http://localhost:3000/          # → "Hello World!" (healthcheck)
+```
+
+---
+
+## 9. Guía de Despliegue y Exportación con Docker
+
+### 9.1 Archivos de contenedorización
+
+El proyecto incluye los siguientes archivos para despliegue con Docker:
+
+| Archivo | Propósito |
+|---|---|
+| `Dockerfile` | Build multi-stage (builder → production) para la API NestJS |
+| `.dockerignore` | Excluye `node_modules`, `dist`, `.git`, `.env` y logs del contexto de build |
+| `docker-compose.yml` | Orquesta los servicios `db` (MySQL 8.0) y `backend` (NestJS API) |
+
+### 9.2 Iniciar todo el sistema con un solo comando
+
+```bash
+docker compose up --build -d
+```
+
+Este comando:
+1. Construye la imagen Docker del backend usando el `Dockerfile` multi-stage.
+2. Descarga la imagen `mysql:8.0` si no existe localmente.
+3. Levanta el contenedor `kuxtal_mysql` y espera a que pase el healthcheck (`mysqladmin ping`).
+4. Una vez que MySQL está saludable, levanta el contenedor `kuxtal_backend`.
+
+### 9.3 Detener y limpiar servicios
+
+```bash
+# Detener servicios (los datos en MySQL se mantienen en el volumen)
+docker compose down
+
+# Detener y ELIMINAR todos los datos (destructivo)
+docker compose down -v
+```
+
+### 9.4 Verificar el estado
+
+```bash
+# Ver contenedores activos
+docker compose ps
+
+# Ver logs del backend
+docker compose logs -f backend
+
+# Ver logs de MySQL
+docker compose logs -f db
+
+# Probar la API
+curl http://localhost:3000/
+curl http://localhost:3000/api/jugadores
+```
+
+### 9.5 Compartir con compañeros
+
+Para que cualquier compañero pueda ejecutar el proyecto completo:
+
+1. **Subir al repositorio Git** los archivos: `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `.env.example` y el código fuente.
+2. **NO subir** el archivo `.env` (contiene credenciales privadas). El `.gitignore` ya lo excluye.
+3. El compañero solo necesita:
+   - Clonar el repositorio.
+   - Copiar `.env.example` a `.env` y ajustar las variables si es necesario.
+   - Ejecutar: `docker compose up -d`
+
+```bash
+# En la máquina del compañero:
+git clone <repositorio>
+cd el-viajede-kuxtal-backend
+cp .env.example .env
+docker compose up -d
+```
+
+### 9.6 Variables de entorno para Docker
+
+Cuando se ejecuta dentro de Docker, el `DB_HOST` debe ser `db` (el nombre del servicio en `docker-compose.yml`), no `localhost`. El `docker-compose.yml` inyecta automáticamente las variables correctas al contenedor `backend`.
+
+| Contexto | `DB_HOST` |
+|---|---|
+| Desarrollo local (XAMPP) | `localhost` o `127.0.0.1` |
+| Docker Compose | `db` |
+
+### 9.7 Estructura de archivos relevante
+
+```
+el-viajede-kuxtal-backend/
+├── Dockerfile                  # Build multi-stage NestJS
+├── .dockerignore               # Exclusiones del contexto Docker
+├── docker-compose.yml          # Orquestación: db + backend
+├── .env.example                # Plantilla de variables (versionada)
+├── .env                        # Variables reales (NO se versiona)
+├── package.json
+├── pnpm-lock.yaml
+└── src/
+    └── ...
 ```

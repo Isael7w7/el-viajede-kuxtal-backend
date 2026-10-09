@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-  mysql_db:
+  db:
     image: mysql:8.0
     container_name: kuxtal_mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: kuxtal_root_password
       MYSQL_DATABASE: kuxtal_db
       MYSQL_USER: kuxtal_user
       MYSQL_PASSWORD: kuxtal_password
@@ -14,6 +14,32 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pkuxtal_root_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kuxtal_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_TYPE: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME: kuxtal_user
+      DB_PASSWORD: kuxtal_password
+      DB_DATABASE: kuxtal_db
+      DB_SYNCHRONIZE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   mysql_data:
