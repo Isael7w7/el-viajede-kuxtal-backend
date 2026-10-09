@@ -32,6 +32,8 @@ export class RespuestasJugadorProcessor {
           respuestaSeleccionada: registrarRespuestaDto.respuestaSeleccionada,
           esCorrecta: registrarRespuestaDto.esCorrecta,
           esEstrategiaSaludable: registrarRespuestaDto.esEstrategiaSaludable,
+          tiempoRespuestaSegundos:
+            registrarRespuestaDto.tiempoRespuestaSegundos ?? null,
         });
         await manager.save(respuesta);
 

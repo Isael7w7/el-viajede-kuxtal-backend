@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Length,
@@ -28,4 +29,9 @@ export class RegistrarRespuestaDto {
 
   @IsBoolean()
   esEstrategiaSaludable: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  tiempoRespuestaSegundos?: number;
 }

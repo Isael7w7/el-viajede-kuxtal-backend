@@ -37,9 +37,12 @@ export class JuegoService {
       );
     }
 
+    const EQUILIBRIO_MINIMO_CRISTAL = 70;
+
     jugador.nivelCompletado = true;
     jugador.tiempoTotalSegundos = finalizarJuegoDto.tiempoTotalSegundos;
-    progreso.cristalObtenido = true;
+    progreso.cristalObtenido =
+      progreso.equilibrioEmocional >= EQUILIBRIO_MINIMO_CRISTAL;
 
     await this.jugadorRepository.save(jugador);
     await this.progresoNivelRepository.save(progreso);

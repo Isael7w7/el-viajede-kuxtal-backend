@@ -30,6 +30,9 @@ export class RespuestaJugador {
   @Column({ type: 'boolean', name: 'es_estrategia_saludable' })
   esEstrategiaSaludable: boolean;
 
+  @Column({ type: 'int', name: 'tiempo_respuesta_segundos', nullable: true })
+  tiempoRespuestaSegundos: number | null;
+
   @CreateDateColumn({ name: 'fecha_registro' })
   fechaRegistro: Date;
 
