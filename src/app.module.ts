@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ContenidoModule } from './modulos/contenido/contenido.module';
 import { JuegoModule } from './modulos/juego/juego.module';
 import { JugadoresModule } from './modulos/jugadores/jugadores.module';
 import { MetricasModule } from './modulos/metricas/metricas.module';
@@ -33,6 +34,7 @@ import { RespuestasJugadorModule } from './modulos/respuestas-jugador/respuestas
     RespuestasJugadorModule,
     JuegoModule,
     MetricasModule,
+    ContenidoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
